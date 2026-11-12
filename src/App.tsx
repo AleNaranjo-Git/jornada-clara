@@ -4,12 +4,13 @@ import { previewSchedule, summarizeSchedule } from './domain/cycles/calculator.t
 import { createPreset, PRESETS, type PresetId } from './domain/cycles/presets.ts';
 import type { ScheduleRequest, ShiftDay, ShiftKind } from './domain/cycles/types.ts';
 import { estimateIllustrativeOvertime } from './domain/pay/estimate.ts';
+import { summarizeSettlement } from './domain/pay/settlement.ts';
 import { localizeError, translations, type Locale } from './i18n/translations.ts';
 
 type PresetSelection = PresetId | 'custom';
 const INITIAL_START = '2025-01-01';
 const INITIAL_END = '2026-01-25'; // 390 inclusive calendar days
-const KIND_INITIALS: Record<ShiftKind, string> = { diurno: 'D', nocturno: 'N', libre: 'L' };
+const KIND_INITIALS: Record<ShiftKind, string> = { diurno: 'D', nocturno: 'N', mixto: 'M', libre: 'L' };
 
 /** Prefer a previously selected language, otherwise the browser preference. */
 function initialLocale(): Locale {
@@ -45,6 +46,12 @@ export default function App() {
   const [endDate, setEndDate] = useState(INITIAL_END);
   const [startingDayInCycle, setStartingDayInCycle] = useState(1);
   const [salaryInput, setSalaryInput] = useState('413000');
+  const [employeeName, setEmployeeName] = useState('');
+  const [noticeInput, setNoticeInput] = useState('');
+  const [severanceInput, setSeveranceInput] = useState('');
+  const [wagesInput, setWagesInput] = useState('');
+  const [aguinaldoInput, setAguinaldoInput] = useState('');
+  const [vacationDaysInput, setVacationDaysInput] = useState('');
   const idCounter = useRef(0);
   const request: ScheduleRequest = { startDate, endDate, cycle, startingDayInCycle };
 
@@ -63,6 +70,23 @@ export default function App() {
       return null;
     }
   }, [summary, validSalary, salary, startDate, endDate, cycle, startingDayInCycle]);
+
+  const pendingValues = [noticeInput, severanceInput, wagesInput, aguinaldoInput, vacationDaysInput];
+  const validPending = pendingValues.every((value) => value.trim() === '' || (Number.isFinite(Number(value)) && Number(value) >= 0));
+  const settlement = useMemo(() => {
+    if (!estimate || !validPending) return null;
+    try {
+      return summarizeSettlement(estimate.total, estimate.dailySalary, {
+        notice: noticeInput ? Number(noticeInput) : 0,
+        severance: severanceInput ? Number(severanceInput) : 0,
+        wages: wagesInput ? Number(wagesInput) : 0,
+        aguinaldo: aguinaldoInput ? Number(aguinaldoInput) : 0,
+        vacationDays: vacationDaysInput ? Number(vacationDaysInput) : 0,
+      });
+    } catch {
+      return null;
+    }
+  }, [estimate, validPending, noticeInput, severanceInput, wagesInput, aguinaldoInput, vacationDaysInput]);
 
   useEffect(() => {
     try { window.localStorage.setItem('jornada-clara-locale', locale); } catch { /* Optional preference only. */ }
@@ -98,7 +122,7 @@ export default function App() {
   function changeKind(id: string, kind: ShiftKind) {
     updateCycle((previous) => previous.map((day) => day.id !== id ? day : {
       ...day, kind,
-      hours: kind === 'libre' ? 0 : day.kind === 'libre' ? 12 : day.hours,
+      hours: kind === 'libre' ? 0 : kind === 'mixto' ? 8 : day.kind === 'libre' ? 12 : day.hours,
     }));
   }
   function changeHours(id: string, hours: number) {
@@ -106,7 +130,7 @@ export default function App() {
   }
   function addDay(kind: ShiftKind) {
     idCounter.current += 1;
-    updateCycle((previous) => [...previous, { id: `custom-${idCounter.current}`, kind, hours: kind === 'libre' ? 0 : 12 }]);
+    updateCycle((previous) => [...previous, { id: `custom-${idCounter.current}`, kind, hours: kind === 'libre' ? 0 : kind === 'mixto' ? 8 : 12 }]);
   }
   function removeDay(id: string) {
     if (cycle.length < 2) return;
@@ -129,6 +153,12 @@ export default function App() {
     setEndDate(INITIAL_END);
     setStartingDayInCycle(1);
     setSalaryInput('413000');
+    setEmployeeName('');
+    setNoticeInput('');
+    setSeveranceInput('');
+    setWagesInput('');
+    setAguinaldoInput('');
+    setVacationDaysInput('');
   }
 
   return (
@@ -201,7 +231,7 @@ export default function App() {
                 ))}
               </div>
               <div className="legend">
-                <span><i className="dot day-dot" />{t.kinds.diurno}</span><span><i className="dot night-dot" />{t.kinds.nocturno}</span><span><i className="dot off-dot" />{t.kinds.libre}</span>
+                <span><i className="dot day-dot" />{t.kinds.diurno}</span><span><i className="dot night-dot" />{t.kinds.nocturno}</span><span><i className="dot mixed-dot" />{t.kinds.mixto}</span><span><i className="dot off-dot" />{t.kinds.libre}</span>
               </div>
 
               {preset === 'custom' ? (
@@ -211,7 +241,7 @@ export default function App() {
                     <div className="custom-row" key={day.id}>
                       <span className="custom-index">{index + 1}</span>
                       <select aria-label={`${t.day} ${index + 1}`} value={day.kind} onChange={(e) => changeKind(day.id, e.target.value as ShiftKind)}>
-                        {(['diurno', 'nocturno', 'libre'] as const).map((kind) => <option key={kind} value={kind}>{t.kinds[kind]}</option>)}
+                        {(['diurno', 'nocturno', 'mixto', 'libre'] as const).map((kind) => <option key={kind} value={kind}>{t.kinds[kind]}</option>)}
                       </select>
                       <label className="hours-label">
                         <span className="visually-hidden">{t.scheduledHoursDay} {index + 1}</span>
@@ -224,7 +254,7 @@ export default function App() {
                     </div>
                   ))}
                   <div className="add-buttons">
-                    {(['diurno', 'nocturno', 'libre'] as const).map((kind) => <button key={kind} type="button" onClick={() => addDay(kind)}>+ {t.kinds[kind]}</button>)}
+                    {(['diurno', 'nocturno', 'mixto', 'libre'] as const).map((kind) => <button key={kind} type="button" onClick={() => addDay(kind)}>+ {t.kinds[kind]}</button>)}
                   </div>
                 </div>
               ) : <button className="text-button" type="button" onClick={() => setPreset('custom')}>{t.editThisCycle} <span aria-hidden="true">→</span></button>}
@@ -232,6 +262,9 @@ export default function App() {
               <div className="panel-divider" />
               <div className="panel-step"><span className="step-number">02</span><div><h3>{t.periodTitle}</h3><p>{t.periodDesc}</p></div></div>
               <div className="input-grid">
+                <label className="full-row">{t.employeeNameLabel}
+                  <input type="text" value={employeeName} maxLength={120} autoComplete="off" onChange={(e) => setEmployeeName(e.target.value)} />
+                </label>
                 <label>{t.startDate}<input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></label>
                 <label>{t.endDate}<input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} /></label>
                 <label className="full-row">{t.startingPosition}
@@ -251,11 +284,37 @@ export default function App() {
               </div>
               {!validSalary && <div className="input-error" role="alert">{t.invalidSalary}</div>}
               <p className="helper-note">{t.salaryHelp}</p>
+              <div className="panel-divider" />
+              <div className="panel-step"><span className="step-number">04</span><div><h3>{t.pendingTitleForm}</h3><p>{t.pendingFormHelp}</p></div></div>
+              <div className="input-grid">
+                {([
+                  { label: t.pendingNotice, value: noticeInput, set: setNoticeInput },
+                  { label: t.pendingSeverance, value: severanceInput, set: setSeveranceInput },
+                  { label: t.pendingWages, value: wagesInput, set: setWagesInput },
+                  { label: t.pendingAguinaldo, value: aguinaldoInput, set: setAguinaldoInput },
+                ] as const).map((field) => (
+                  <label key={field.label}>{field.label}
+                    <input type="number" min="0" step="0.01" inputMode="decimal" value={field.value} placeholder="0"
+                      onChange={(e) => field.set(e.target.value)} aria-invalid={field.value.trim() !== '' && (!Number.isFinite(Number(field.value)) || Number(field.value) < 0)} />
+                  </label>
+                ))}
+                <label className="full-row">{t.vacationDaysLabel}
+                  <input type="number" min="0" step="any" inputMode="decimal" value={vacationDaysInput} placeholder="0"
+                    onChange={(e) => setVacationDaysInput(e.target.value)} aria-invalid={vacationDaysInput.trim() !== '' && (!Number.isFinite(Number(vacationDaysInput)) || Number(vacationDaysInput) < 0)} />
+                </label>
+              </div>
+              {!validPending && <div className="input-error" role="alert">{t.invalidPending}</div>}
+              <p className="helper-note">{t.pendingFormNotice}</p>
+              {settlement && <div className="math-note"><span>{t.vacationAmount}</span>
+                <p>{num(settlement.pending.vacationDays)} {t.days} × {money(settlement.dailySalary)} = <strong>{money(settlement.vacationAmount)}</strong></p>
+              </div>}
               <div className="math-note assumption-note"><span>{t.moneyStatus}</span><p>{t.financialAssumptions}</p></div>
             </div>
 
             <div className="result-column" id="results">
-              <div className="print-only print-heading"><h1>{BRAND.name}</h1><p>{t.printReport}</p><p>{t.printPeriod}: {startDate} — {endDate}</p>
+              <div className="print-only print-heading"><h1>{BRAND.name}</h1><p>{t.printReport}</p>
+                {employeeName.trim() && <p className="print-employee">{t.printEmployee}: {employeeName.trim()}</p>}
+                <p>{t.printPeriod}: {startDate} — {endDate}</p>
                 <p>{t.printCycle}: {cycle.map((shift) => `${t.kinds[shift.kind]} (${shift.hours} h)`).join(' · ')}</p>
                 <p>{t.printPhase}: {startingDayInCycle} · {t.printSalary}: {validSalary ? money(salary) : '—'}</p>
                 <p>{t.printCreated}: {new Intl.DateTimeFormat(locale === 'es' ? 'es-CR' : 'en-US', { dateStyle: 'long' }).format(new Date())}</p>
@@ -273,6 +332,7 @@ export default function App() {
                     <div className="metric-list">
                       <div><span><i className="dot day-dot" />{t.kindPlurals.diurno}</span><strong>{num(summary.counts.diurno)} {t.days}</strong></div>
                       <div><span><i className="dot night-dot" />{t.kindPlurals.nocturno}</span><strong>{num(summary.counts.nocturno)} {t.days}</strong></div>
+                      <div><span><i className="dot mixed-dot" />{t.kindPlurals.mixto}</span><strong>{num(summary.counts.mixto)} {t.days}</strong></div>
                       <div><span><i className="dot off-dot" />{t.kindPlurals.libre}</span><strong>{num(summary.counts.libre)} {t.days}</strong></div>
                     </div>
                     <div className="math-note"><span>{t.howCalculated}</span><p>{num(summary.totalDays)} {t.days} ÷ {summary.cycleLength} {t.perCycle} = <strong>{num(summary.completeCycles)} {t.cyclesComplete}</strong> + <strong>{num(summary.remainingDays)} {t.additionalDays}</strong>.</p></div>
@@ -284,14 +344,32 @@ export default function App() {
                 <div className="results-heading"><div><div className="section-overline">{t.moneyStatus}</div><h3>{t.moneyTitle}</h3></div></div>
                 <div className="metric-list">
                   <div><span>{t.monthlyBasis}</span><strong>{money(estimate.dailySalary)}</strong></div>
+                  <div><span>{t.nightWorkedHours}</span><strong>{num(summary.scheduledHoursByKind.nocturno)} h</strong></div>
+                  <div><span>{t.mixedWorkedHours}</span><strong>{num(summary.scheduledHoursByKind.mixto)} h</strong></div>
                   <div><span>{t.overtimeDay}</span><strong>{num(estimate.illustrativeOvertimeHours.diurno)} h</strong></div>
                   <div><span>{t.dayValue}</span><strong>{money(estimate.overtimeHourlyRates.diurno)}</strong></div>
                   <div><span>{t.daySubtotal}</span><strong>{money(estimate.subtotals.diurno)}</strong></div>
                   <div><span>{t.overtimeNight}</span><strong>{num(estimate.illustrativeOvertimeHours.nocturno)} h</strong></div>
                   <div><span>{t.nightValue}</span><strong>{money(estimate.overtimeHourlyRates.nocturno)}</strong></div>
                   <div><span>{t.nightSubtotal}</span><strong>{money(estimate.subtotals.nocturno)}</strong></div>
+                  <div><span>{t.overtimeMixed}</span><strong>{num(estimate.illustrativeOvertimeHours.mixto)} h</strong></div>
+                  <div><span>{t.mixedValue}</span><strong>{money(estimate.overtimeHourlyRates.mixto)}</strong></div>
+                  <div><span>{t.mixedSubtotal}</span><strong>{money(estimate.subtotals.mixto)}</strong></div>
                 </div>
                 <div className="total-estimate"><span>{t.estimateTotal}</span><strong>{money(estimate.total)}</strong></div>
+                {settlement && <div className="settlement-breakdown">
+                  <h4>{t.finalSummaryTitle}</h4>
+                  <div className="metric-list">
+                    <div><span>{t.overtimeSubtotal}</span><strong>{money(settlement.overtimeSubtotal)}</strong></div>
+                    <div><span>{t.pendingNotice}</span><strong>{money(settlement.pending.notice)}</strong></div>
+                    <div><span>{t.pendingSeverance}</span><strong>{money(settlement.pending.severance)}</strong></div>
+                    <div><span>{t.pendingWages}</span><strong>{money(settlement.pending.wages)}</strong></div>
+                    <div><span>{t.pendingAguinaldo}</span><strong>{money(settlement.pending.aguinaldo)}</strong></div>
+                    <div><span>{t.vacationDaysLabel}</span><strong>{num(settlement.pending.vacationDays)} {t.days}</strong></div>
+                    <div><span>{t.vacationAmount}</span><strong>{money(settlement.vacationAmount)}</strong></div>
+                  </div>
+                  <div className="total-estimate"><span>{t.grandTotal}</span><strong>{money(settlement.grandTotal)}</strong></div>
+                </div>}
                 <p className="disclaimer" role="note">{t.estimationNotice}</p>
                 <button type="button" className="print-button no-print" onClick={() => window.print()}>{t.pdfButton} ↗</button>
                 <p className="helper-note no-print">{t.pdfHint}</p>

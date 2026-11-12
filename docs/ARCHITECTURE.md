@@ -6,6 +6,7 @@ The application is frontend-only: React handles inputs and results, while the ca
 |---|---|
 | `src/domain/cycles/` | Define shift types and presets; count dates, cycles, partial cycles and scheduled hours |
 | `src/domain/pay/estimate.ts` | Apply the current illustrative overtime formula to a cycle summary |
+| `src/domain/pay/settlement.ts` | Combine manually entered amounts and calculated vacation days × daily salary into a final summary |
 | `src/i18n/translations.ts` | English/Spanish text and translated validation messages |
 | `src/App.tsx` | Form state, result rendering, preview and browser print action |
 | `src/styles.css` | Responsive layout and print-specific styles |

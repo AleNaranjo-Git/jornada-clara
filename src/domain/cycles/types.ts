@@ -1,5 +1,5 @@
 /** Una unidad del ciclo corresponde a UN día calendario. */
-export type ShiftKind = 'diurno' | 'nocturno' | 'libre';
+export type ShiftKind = 'diurno' | 'nocturno' | 'mixto' | 'libre';
 
 export type ShiftDay = Readonly<{
   id: string;
@@ -25,6 +25,7 @@ export type ScheduleSummary = Readonly<{
   remainingDays: number;
   counts: ShiftCounts;
   scheduledHours: number;
+  scheduledHoursByKind: Record<ShiftKind, number>;
 }>;
 
 export type PreviewDay = Readonly<{
