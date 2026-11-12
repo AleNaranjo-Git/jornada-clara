@@ -9,16 +9,18 @@ import type { ScheduleRequest, ShiftKind } from '../cycles/types.ts';
  */
 export const DEMO_RULE = Object.freeze({
   daysPerMonth: 30,
-  dailyOrdinaryHours: { diurno: 8, nocturno: 6 } as const,
+  dailyOrdinaryHours: { diurno: 8, nocturno: 6, mixto: 7 } as const,
+  /** Business request: one illustrative overtime hour per mixed-shift day. Not legally validated. */
+  mixedExtraHoursPerShift: 1,
   overtimeMultiplier: 1.5,
 });
 
 export type IllustrativePayEstimate = Readonly<{
   monthlySalary: number;
   dailySalary: number;
-  overtimeHourlyRates: Readonly<{ diurno: number; nocturno: number }>;
-  illustrativeOvertimeHours: Readonly<{ diurno: number; nocturno: number }>;
-  subtotals: Readonly<{ diurno: number; nocturno: number }>;
+  overtimeHourlyRates: Readonly<{ diurno: number; nocturno: number; mixto: number }>;
+  illustrativeOvertimeHours: Readonly<{ diurno: number; nocturno: number; mixto: number }>;
+  subtotals: Readonly<{ diurno: number; nocturno: number; mixto: number }>;
   total: number;
 }>;
 
@@ -35,9 +37,11 @@ export function estimateIllustrativeOvertime(
   }
   const summary = summarizeSchedule(schedule); // validates dates, shifts and starting phase
   const perShift = (kind: ShiftKind, hours: number): number =>
-    kind === 'libre' ? 0 : Math.max(0, hours - DEMO_RULE.dailyOrdinaryHours[kind]);
+    kind === 'libre' ? 0 : kind === 'mixto'
+      ? DEMO_RULE.mixedExtraHoursPerShift
+      : Math.max(0, hours - DEMO_RULE.dailyOrdinaryHours[kind]);
 
-  const hours = { diurno: 0, nocturno: 0 };
+  const hours = { diurno: 0, nocturno: 0, mixto: 0 };
   for (const shift of schedule.cycle) {
     if (shift.kind !== 'libre') {
       hours[shift.kind] += perShift(shift.kind, shift.hours) * summary.completeCycles;
@@ -54,10 +58,12 @@ export function estimateIllustrativeOvertime(
   const overtimeHourlyRates = {
     diurno: dailySalary / DEMO_RULE.dailyOrdinaryHours.diurno * DEMO_RULE.overtimeMultiplier,
     nocturno: dailySalary / DEMO_RULE.dailyOrdinaryHours.nocturno * DEMO_RULE.overtimeMultiplier,
+    mixto: dailySalary / DEMO_RULE.dailyOrdinaryHours.mixto * DEMO_RULE.overtimeMultiplier,
   };
   const subtotals = {
     diurno: hours.diurno * overtimeHourlyRates.diurno,
     nocturno: hours.nocturno * overtimeHourlyRates.nocturno,
+    mixto: hours.mixto * overtimeHourlyRates.mixto,
   };
   return {
     monthlySalary,
@@ -65,6 +71,6 @@ export function estimateIllustrativeOvertime(
     overtimeHourlyRates,
     illustrativeOvertimeHours: hours,
     subtotals,
-    total: subtotals.diurno + subtotals.nocturno,
+    total: subtotals.diurno + subtotals.nocturno + subtotals.mixto,
   };
 }

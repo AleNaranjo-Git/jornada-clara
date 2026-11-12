@@ -8,7 +8,7 @@ import type {
 } from './types.ts';
 
 const ONE_DAY_MS = 86_400_000;
-const KINDS: readonly ShiftKind[] = ['diurno', 'nocturno', 'libre'];
+const KINDS: readonly ShiftKind[] = ['diurno', 'nocturno', 'mixto', 'libre'];
 
 /**
  * Interpreta YYYY-MM-DD como fecha CALENDARIO, no como hora local.
@@ -65,13 +65,15 @@ export function summarizeSchedule(request: ScheduleRequest): ScheduleSummary {
   const cycleLength = cycle.length;
   const completeCycles = Math.floor(totalDays / cycleLength);
   const remainingDays = totalDays % cycleLength;
-  const counts: ShiftCounts = { diurno: 0, nocturno: 0, libre: 0 };
+  const counts: ShiftCounts = { diurno: 0, nocturno: 0, mixto: 0, libre: 0 };
   let scheduledHours = 0;
+  const scheduledHoursByKind: Record<ShiftKind, number> = { diurno: 0, nocturno: 0, mixto: 0, libre: 0 };
 
   // Cada ciclo completo contiene todos los turnos una vez, independientemente de la fase.
   for (const shift of cycle) {
     counts[shift.kind] += completeCycles;
     scheduledHours += shift.hours * completeCycles;
+    scheduledHoursByKind[shift.kind] += shift.hours * completeCycles;
   }
 
   // Los días sobrantes comienzan en la posición del ciclo asignada al inicio.
@@ -80,6 +82,7 @@ export function summarizeSchedule(request: ScheduleRequest): ScheduleSummary {
     const shift = cycle[(zeroBasedStart + offset) % cycleLength];
     counts[shift.kind] += 1;
     scheduledHours += shift.hours;
+    scheduledHoursByKind[shift.kind] += shift.hours;
   }
 
   return {
@@ -89,6 +92,7 @@ export function summarizeSchedule(request: ScheduleRequest): ScheduleSummary {
     remainingDays,
     counts,
     scheduledHours,
+    scheduledHoursByKind,
   };
 }
 
