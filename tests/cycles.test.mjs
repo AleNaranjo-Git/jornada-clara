@@ -15,19 +15,19 @@ test('390 días: 65 ciclos completos de 2×2×2', () => {
   assert.equal(result.totalDays, 390);
   assert.equal(result.completeCycles, 65);
   assert.equal(result.remainingDays, 0);
-  assert.deepEqual(result.counts, { diurno: 130, nocturno: 130, libre: 130 });
+  assert.deepEqual(result.counts, { diurno: 130, nocturno: 130, mixto: 0, libre: 130 });
   assert.equal(result.scheduledHours, 3120);
 });
 
 test('392 días incluyen correctamente el ciclo parcial', () => {
   const result = summarizeSchedule({ ...base, endDate: '2026-01-27' });
-  assert.deepEqual(result.counts, { diurno: 132, nocturno: 130, libre: 130 });
+  assert.deepEqual(result.counts, { diurno: 132, nocturno: 130, mixto: 0, libre: 130 });
   assert.equal(result.remainingDays, 2);
 });
 
 test('la fase inicial modifica qué turnos sobran', () => {
   const result = summarizeSchedule({ ...base, endDate: '2026-01-27', startingDayInCycle: 3 });
-  assert.deepEqual(result.counts, { diurno: 130, nocturno: 132, libre: 130 });
+  assert.deepEqual(result.counts, { diurno: 130, nocturno: 132, mixto: 0, libre: 130 });
 });
 
 test('los turnos pueden ser personalizados y tener orden arbitrario', () => {
@@ -37,7 +37,7 @@ test('los turnos pueden ser personalizados y tener orden arbitrario', () => {
     { id: 'c', kind: 'diurno', hours: 8 },
   ];
   const result = summarizeSchedule({ startDate: '2026-02-01', endDate: '2026-02-04', cycle, startingDayInCycle: 2 });
-  assert.deepEqual(result.counts, { diurno: 1, nocturno: 2, libre: 1 });
+  assert.deepEqual(result.counts, { diurno: 1, nocturno: 2, mixto: 0, libre: 1 });
   assert.equal(result.scheduledHours, 28);
 });
 
@@ -72,5 +72,5 @@ test('se genera una vista previa con fecha y posición coherentes', () => {
 
 test('preset 4×2 produce cuatro diurnos y dos libres por ciclo', () => {
   const result = summarizeSchedule({ startDate: '2026-01-01', endDate: '2026-01-06', cycle: createPreset('42'), startingDayInCycle: 1 });
-  assert.deepEqual(result.counts, { diurno: 4, nocturno: 0, libre: 2 });
+  assert.deepEqual(result.counts, { diurno: 4, nocturno: 0, mixto: 0, libre: 2 });
 });

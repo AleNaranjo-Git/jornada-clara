@@ -12,7 +12,7 @@ const example = {
 
 test('caso de referencia: salario 413.000, 390 días', () => {
   const result = estimateIllustrativeOvertime(example, 413_000);
-  assert.deepEqual(result.illustrativeOvertimeHours, { diurno: 520, nocturno: 780 });
+  assert.deepEqual(result.illustrativeOvertimeHours, { diurno: 520, nocturno: 780, mixto: 0 });
   assert.equal(result.subtotals.diurno, 1_342_250);
   assert.equal(result.subtotals.nocturno, 2_684_500);
   assert.equal(result.total, 4_026_750);
