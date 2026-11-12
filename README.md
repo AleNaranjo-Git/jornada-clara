@@ -2,7 +2,7 @@
 
 A bilingual web app for exploring recurring work schedules in Costa Rica. Build a shift cycle, select a date range, and see the number of day, night and mixed shifts, plus days off. The app also includes an **illustrative** overtime estimate in Costa Rican colones (CRC).
 
-**Current version:** `0.2.0` — working prototype, not a legally validated payroll calculator.
+**Current version:** `0.3.0` — working prototype, not a legally validated payroll calculator.
 
 ## Features
 
@@ -11,7 +11,7 @@ A bilingual web app for exploring recurring work schedules in Costa Rica. Build 
 - Custom day, night and mixed shift sequences, including shift length and order.
 - Date-range calculations with partial cycles and a configurable starting position.
 - Breakdown of shifts, scheduled hours and illustrative overtime amounts.
-- Overall summary combining simulated overtime with manually entered notice pay, severance and unpaid wages.
+- Overall summary combining simulated overtime with manually entered notice pay, severance, unpaid wages and aguinaldo. Outstanding vacation pay is calculated from the entered days × reference daily salary.
 - Print-friendly report that can be saved as a PDF through the browser.
 - Responsive layout for mobile and desktop.
 
@@ -51,7 +51,7 @@ night overtime rate = (daily salary / 6) × 1.5
 estimated extra hours = max(0, scheduled shift hours - 8 or 6)
 ```
 
-Amounts are rounded for display, not during intermediate calculations. Mixed shifts currently use a provisional **one extra hour per worked mixed day** at `(daily salary / 7) × 1.5`. This is a requested demonstration assumption, not a legally verified rule. The app does not separate mixed day/night hours without actual shift start/end times, and it does not automatically calculate notice pay, severance or unpaid wages. Holiday rules, special regimes, salary history, breaks and prior payments remain outside scope. Legal validation is required before using estimates for an actual labor claim.
+Amounts are rounded for display, not during intermediate calculations. Mixed shifts currently use a provisional **one extra hour per worked mixed day** at `(daily salary / 7) × 1.5`. This is a requested demonstration assumption, not a legally verified rule. The app does not separate mixed day/night hours without actual shift start/end times. Notice pay, severance, unpaid wages and aguinaldo are manually entered. The vacation estimate uses pending days × (monthly salary / 30), without applying other eligibility or historical-pay rules. Holiday rules, special regimes, salary history, breaks and prior payments remain outside scope. Legal validation is required before using estimates for an actual labor claim.
 
 The app runs in the browser and does not have a backend. Its only locally saved preference is the selected language.
 
@@ -75,5 +75,5 @@ Implementation details are in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). The 
 
 **Jornada Clara** permite configurar ciclos de trabajo y calcular cuántas jornadas diurnas, nocturnas, mixtas y días libres corresponden a un período. Incluye una simulación de horas extra, opciones de idioma español/inglés y una vista de impresión para guardar el resultado como PDF.
 
-**Importante:** los montos son ilustrativos. La lógica salarial todavía no está validada para establecer obligaciones laborales reales.
+**Importante:** el aguinaldo se ingresa manualmente; las vacaciones pendientes se estiman como días pendientes × (salario mensual ÷ 30). Los montos son ilustrativos. La lógica salarial todavía no está validada para establecer obligaciones laborales reales.
 

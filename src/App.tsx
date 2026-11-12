@@ -49,6 +49,8 @@ export default function App() {
   const [noticeInput, setNoticeInput] = useState('');
   const [severanceInput, setSeveranceInput] = useState('');
   const [wagesInput, setWagesInput] = useState('');
+  const [aguinaldoInput, setAguinaldoInput] = useState('');
+  const [vacationDaysInput, setVacationDaysInput] = useState('');
   const idCounter = useRef(0);
   const request: ScheduleRequest = { startDate, endDate, cycle, startingDayInCycle };
 
@@ -68,16 +70,22 @@ export default function App() {
     }
   }, [summary, validSalary, salary, startDate, endDate, cycle, startingDayInCycle]);
 
-  const pendingValues = [noticeInput, severanceInput, wagesInput];
+  const pendingValues = [noticeInput, severanceInput, wagesInput, aguinaldoInput, vacationDaysInput];
   const validPending = pendingValues.every((value) => value.trim() === '' || (Number.isFinite(Number(value)) && Number(value) >= 0));
   const settlement = useMemo(() => {
     if (!estimate || !validPending) return null;
-    return summarizeSettlement(estimate.total, {
-      notice: noticeInput ? Number(noticeInput) : 0,
-      severance: severanceInput ? Number(severanceInput) : 0,
-      wages: wagesInput ? Number(wagesInput) : 0,
-    });
-  }, [estimate, validPending, noticeInput, severanceInput, wagesInput]);
+    try {
+      return summarizeSettlement(estimate.total, estimate.dailySalary, {
+        notice: noticeInput ? Number(noticeInput) : 0,
+        severance: severanceInput ? Number(severanceInput) : 0,
+        wages: wagesInput ? Number(wagesInput) : 0,
+        aguinaldo: aguinaldoInput ? Number(aguinaldoInput) : 0,
+        vacationDays: vacationDaysInput ? Number(vacationDaysInput) : 0,
+      });
+    } catch {
+      return null;
+    }
+  }, [estimate, validPending, noticeInput, severanceInput, wagesInput, aguinaldoInput, vacationDaysInput]);
 
   useEffect(() => {
     try { window.localStorage.setItem('jornada-clara-locale', locale); } catch { /* Optional preference only. */ }
@@ -147,6 +155,8 @@ export default function App() {
     setNoticeInput('');
     setSeveranceInput('');
     setWagesInput('');
+    setAguinaldoInput('');
+    setVacationDaysInput('');
   }
 
   return (
@@ -276,15 +286,23 @@ export default function App() {
                   { label: t.pendingNotice, value: noticeInput, set: setNoticeInput },
                   { label: t.pendingSeverance, value: severanceInput, set: setSeveranceInput },
                   { label: t.pendingWages, value: wagesInput, set: setWagesInput },
+                  { label: t.pendingAguinaldo, value: aguinaldoInput, set: setAguinaldoInput },
                 ] as const).map((field) => (
                   <label key={field.label}>{field.label}
                     <input type="number" min="0" step="0.01" inputMode="decimal" value={field.value} placeholder="0"
                       onChange={(e) => field.set(e.target.value)} aria-invalid={field.value.trim() !== '' && (!Number.isFinite(Number(field.value)) || Number(field.value) < 0)} />
                   </label>
                 ))}
+                <label className="full-row">{t.vacationDaysLabel}
+                  <input type="number" min="0" step="any" inputMode="decimal" value={vacationDaysInput} placeholder="0"
+                    onChange={(e) => setVacationDaysInput(e.target.value)} aria-invalid={vacationDaysInput.trim() !== '' && (!Number.isFinite(Number(vacationDaysInput)) || Number(vacationDaysInput) < 0)} />
+                </label>
               </div>
               {!validPending && <div className="input-error" role="alert">{t.invalidPending}</div>}
               <p className="helper-note">{t.pendingFormNotice}</p>
+              {settlement && <div className="math-note"><span>{t.vacationAmount}</span>
+                <p>{num(settlement.pending.vacationDays)} {t.days} × {money(settlement.dailySalary)} = <strong>{money(settlement.vacationAmount)}</strong></p>
+              </div>}
               <div className="math-note assumption-note"><span>{t.moneyStatus}</span><p>{t.financialAssumptions}</p></div>
             </div>
 
@@ -339,6 +357,9 @@ export default function App() {
                     <div><span>{t.pendingNotice}</span><strong>{money(settlement.pending.notice)}</strong></div>
                     <div><span>{t.pendingSeverance}</span><strong>{money(settlement.pending.severance)}</strong></div>
                     <div><span>{t.pendingWages}</span><strong>{money(settlement.pending.wages)}</strong></div>
+                    <div><span>{t.pendingAguinaldo}</span><strong>{money(settlement.pending.aguinaldo)}</strong></div>
+                    <div><span>{t.vacationDaysLabel}</span><strong>{num(settlement.pending.vacationDays)} {t.days}</strong></div>
+                    <div><span>{t.vacationAmount}</span><strong>{money(settlement.vacationAmount)}</strong></div>
                   </div>
                   <div className="total-estimate"><span>{t.grandTotal}</span><strong>{money(settlement.grandTotal)}</strong></div>
                 </div>}
