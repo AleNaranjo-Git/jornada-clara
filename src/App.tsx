@@ -46,6 +46,7 @@ export default function App() {
   const [endDate, setEndDate] = useState(INITIAL_END);
   const [startingDayInCycle, setStartingDayInCycle] = useState(1);
   const [salaryInput, setSalaryInput] = useState('413000');
+  const [employeeName, setEmployeeName] = useState('');
   const [noticeInput, setNoticeInput] = useState('');
   const [severanceInput, setSeveranceInput] = useState('');
   const [wagesInput, setWagesInput] = useState('');
@@ -152,6 +153,7 @@ export default function App() {
     setEndDate(INITIAL_END);
     setStartingDayInCycle(1);
     setSalaryInput('413000');
+    setEmployeeName('');
     setNoticeInput('');
     setSeveranceInput('');
     setWagesInput('');
@@ -260,6 +262,9 @@ export default function App() {
               <div className="panel-divider" />
               <div className="panel-step"><span className="step-number">02</span><div><h3>{t.periodTitle}</h3><p>{t.periodDesc}</p></div></div>
               <div className="input-grid">
+                <label className="full-row">{t.employeeNameLabel}
+                  <input type="text" value={employeeName} maxLength={120} autoComplete="off" onChange={(e) => setEmployeeName(e.target.value)} />
+                </label>
                 <label>{t.startDate}<input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></label>
                 <label>{t.endDate}<input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} /></label>
                 <label className="full-row">{t.startingPosition}
@@ -307,7 +312,9 @@ export default function App() {
             </div>
 
             <div className="result-column" id="results">
-              <div className="print-only print-heading"><h1>{BRAND.name}</h1><p>{t.printReport}</p><p>{t.printPeriod}: {startDate} — {endDate}</p>
+              <div className="print-only print-heading"><h1>{BRAND.name}</h1><p>{t.printReport}</p>
+                {employeeName.trim() && <p className="print-employee">{t.printEmployee}: {employeeName.trim()}</p>}
+                <p>{t.printPeriod}: {startDate} — {endDate}</p>
                 <p>{t.printCycle}: {cycle.map((shift) => `${t.kinds[shift.kind]} (${shift.hours} h)`).join(' · ')}</p>
                 <p>{t.printPhase}: {startingDayInCycle} · {t.printSalary}: {validSalary ? money(salary) : '—'}</p>
                 <p>{t.printCreated}: {new Intl.DateTimeFormat(locale === 'es' ? 'es-CR' : 'en-US', { dateStyle: 'long' }).format(new Date())}</p>

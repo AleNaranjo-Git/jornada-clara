@@ -61,6 +61,7 @@ footer{border-top:1px solid #e2e8f0;padding:24px 32px;max-width:1200px;margin:au
   .print-heading{margin-bottom:19px}
   .print-heading h1{font-size:27px;color:#16263b;margin:0 0 8px}
   .print-heading p{font-size:11px;color:#61788f;margin:3px 0}
+  .print-heading .print-employee{font-size:15px;color:#16263b;font-weight:700;margin:10px 0 7px;overflow-wrap:anywhere}
   .result-panel{box-shadow:none;border:1px solid #ccd4df;margin-bottom:12px;break-inside:avoid;padding:18px}
   .big-metric{margin:16px 0}
   .total-estimate,.math-note{print-color-adjust:exact;-webkit-print-color-adjust:exact}
